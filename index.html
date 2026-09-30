@@ -54,6 +54,7 @@ const {data:p,error:profileError}=await db.from("profiles").select("id,full_name
 if(profileError||!p||!p.active){user=null;profile=null;await db.auth.signOut();gate("Tu usuario no tiene un perfil activo en public.profiles.",profileError?.message||"Solicita a jefatura que revise tu perfil.");return;}
 profile=p;
 let res=await db.from("tenders").select("id,external_id,title,area,status,publication_date,responses_publication_date,tender_close_date,award_date,updated_at").order("created_at",{ascending:false});
+let res=await db.from("tenders").select("id,external_id,title,area,status,derivation_date,publication_date,responses_publication_date,tender_close_date,award_date,updated_at").order("created_at",{ascending:false});
 if(res.error){message(res.error.message,true);return;}
 tenders=res.data||[];
 if(tenders.length){
@@ -86,6 +87,7 @@ if(stateFilter!=="Todas")out=out.filter(t=>t.status===stateFilter);
 const q=search.toLowerCase();return out.filter(t=>(t.external_id+t.title+(t.area||"")+ownerName(t.id)).toLowerCase().includes(q));
 }
 function deadlines(){const today=new Intl.DateTimeFormat("sv-SE",{timeZone:"America/Santiago"}).format(new Date());return tenders.flatMap(t=>[
+t.derivation_date?{date:t.derivation_date,label:"Derivación",t}:null,
 t.publication_date?{date:t.publication_date,label:"Publicación",t}:null,
 t.responses_publication_date?{date:t.responses_publication_date,label:"Publicación de respuestas",t}:null,
 t.tender_close_date?{date:t.tender_close_date,label:"Cierre",t}:null,
@@ -209,7 +211,6 @@ else gate("Antes de usar la página, reemplaza las dos líneas de configuración
 </script>
 </body>
 </html>
-
 
 
 
