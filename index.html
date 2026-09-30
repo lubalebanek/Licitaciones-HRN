@@ -53,7 +53,6 @@ user=u;
 const {data:p,error:profileError}=await db.from("profiles").select("id,full_name,role,active").eq("id",u.id).maybeSingle();
 if(profileError||!p||!p.active){user=null;profile=null;await db.auth.signOut();gate("Tu usuario no tiene un perfil activo en public.profiles.",profileError?.message||"Solicita a jefatura que revise tu perfil.");return;}
 profile=p;
-let res=await db.from("tenders").select("id,external_id,title,area,status,publication_date,responses_publication_date,tender_close_date,award_date,updated_at").order("created_at",{ascending:false});
 let res=await db.from("tenders").select("id,external_id,title,area,status,derivation_date,publication_date,responses_publication_date,tender_close_date,award_date,updated_at").order("created_at",{ascending:false});
 if(res.error){message(res.error.message,true);return;}
 tenders=res.data||[];
@@ -211,6 +210,7 @@ else gate("Antes de usar la página, reemplaza las dos líneas de configuración
 </script>
 </body>
 </html>
+
 
 
 
