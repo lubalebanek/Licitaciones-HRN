@@ -124,7 +124,7 @@ async function manageTeamUser(action,id,name){
   const labels={activate:"activar",deactivate:"desactivar",delete:"eliminar"};
   if(!confirm('¿Deseas '+labels[action]+' la cuenta de '+name+'?'+(action==="delete"?' Esta acción es permanente.':'')))return;
   const {data,error}=await db.functions.invoke("manage-user",{body:{action,user_id:id}});
-  if(error||data?.error){message(data?.error||error?.message||"No se pudo actualizar la cuenta.",true);return;}
+  if(error||data?.error){let detail=data?.error||error?.message||"No se pudo actualizar la cuenta.";try{const response=error?.context;if(response&&typeof response.clone==="function"){const payload=await response.clone().json();if(payload?.error)detail=payload.error;}}catch{}message(detail,true);return;}
   await load();message(data?.message||"Cuenta actualizada correctamente.");
 }
 function showPasswordForm(){
