@@ -339,7 +339,7 @@ function historyHtml(){if(!history.length)return '<div class="empty">Todavía no
 function alertItems(active){
   const today=new Intl.DateTimeFormat("sv-SE",{timeZone:"America/Santiago"}).format(new Date());
   const stages={
-    "En proceso":[["publication_date","Publicación"],["responses_publication_date","Publicación de respuestas"],["tender_close_date","Cierre"],["award_date","Adjudicación"]],
+    "En proceso":[["responses_publication_date","Publicación de respuestas"],["tender_close_date","Cierre"],["award_date","Adjudicación"]],
     "Publicada":[["responses_publication_date","Publicación de respuestas"],["tender_close_date","Cierre"],["award_date","Adjudicación"]],
     "En evaluación de ofertas":[["tender_close_date","Cierre"],["award_date","Adjudicación"]],
     "Cerrada":[["award_date","Adjudicación"]],
@@ -563,7 +563,6 @@ else gate("Antes de usar la página, reemplaza las dos líneas de configuración
 </script>
 </body>
 </html>
-
 
 
 
