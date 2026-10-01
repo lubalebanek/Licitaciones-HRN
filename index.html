@@ -501,7 +501,7 @@ function showCreate(executiveMode=false){
   const title=executiveMode?"Registrar licitación":"Derivar licitación";
   const subtitle=executiveMode?"Registra una licitación propia. Tú quedarás como responsable y podrás completar las fechas después.":"Registra la derivación y asigna a la persona responsable.";
   const fields=executiveMode?
-    '<label>ID licitación<input name="external_id" required maxlength="80" placeholder="Ej.: 1057509-xx-xxxx"></label><label>Título<input name="title" required maxlength="200"></label><label>Área<select name="area" required><option value="">Selecciona un área</option>'+areaOptions+'</select></label><label>Asunto de correo<textarea name="email_subject" maxlength="300" placeholder="Escribe el asunto de correo"></textarea></label>' :
+    '<label>ID licitación <span class="muted">(opcional)</span><input name="external_id" maxlength="80" placeholder="Ej.: 1057509-xx-xxxx"></label><label>Título<input name="title" required maxlength="200"></label><label>Área<select name="area" required><option value="">Selecciona un área</option>'+areaOptions+'</select></label><label>Asunto de correo<textarea name="email_subject" maxlength="300" placeholder="Escribe el asunto de correo"></textarea></label>' :
     '<label>ID licitación anterior <span class="muted">(opcional)</span><input name="external_id" placeholder="Ej.: 1057509-xx-xxxx"></label><label>Título<input name="title" required></label><div class="formgrid"><label>Área<select name="area" required><option value="">Selecciona un área</option>'+areaOptions+'</select></label><label>Responsable<select name="executive_id"><option value="">Sin asignar</option>'+people.filter(p=>p.active&&p.role==="ejecutivo").map(p=>'<option value="'+esc(p.id)+'">'+esc(p.full_name)+'</option>').join("")+'</select></label></div><label>Fecha de derivación<input name="derivation_date" type="date" required></label><label>Asunto de correo<textarea name="email_subject" maxlength="300" placeholder="Escribe el asunto de correo"></textarea></label>';
   const buttonText=executiveMode?"Guardar licitación":"Guardar derivación";
   $("#root").insertAdjacentHTML("beforeend",'<div class="overlay" id="overlay"><form class="modal" id="create"><div class="modal-head"><div><h2>'+title+'</h2><p>'+subtitle+'</p></div><button type="button" class="quiet" id="close">✕</button></div>'+fields+'<div class="actions"><button type="button" class="btn" id="cancel">Cancelar</button><button class="btn primary" id="save">'+buttonText+'</button></div></form></div>');
@@ -563,7 +563,6 @@ else gate("Antes de usar la página, reemplaza las dos líneas de configuración
 </script>
 </body>
 </html>
-
 
 
 
