@@ -91,7 +91,17 @@ const DETAIL_COLUMNS=[
   ["area","AREA"],["id_licitacion","ID"],["ente_tecnico","ENTE TECNICO"],["concepto","CONCEPTO"],["proveedor","PROVEEDOR"],["total_proveedores","TOTAL PROVEEDORES"],["rut_empresa","RUT EMPRESA"],["prestador_subcontratado","PRESTADOR (SUBCONTRATADO)"],["rut_prestador","RUT PRESTADOR"],["prestacion","PRESTACIÓN"],["especialidad","ESPECIALIDAD"],["cantidad","CANTIDAD"],["valor_prestacion","VALOR DE LA PRESTACIÓN"],["total_convenio","TOTAL CONVENIO"],["resolucion_adjudicacion","NUMERO DE RESOLUCION ADJUDICACION"],["fecha_resolucion_adjudicacion","FECHA DE RESOLUCION DE ADJUDICACION (FECHA DE INICIO)"],["fecha_adjudicacion_portal","FECHA ADJ (PORTAL)"],["resolucion_convenio","NUMERO RESOLUCIÓN CONVENIO"],["fecha_resolucion_convenio","FECHA DE RESOLUCION DE CONVENIO"],["termino","TÉRMINO"],["fecha_termino_maxima","FECHA DE TERMINO (MAXIMA VIGENCIA CON RENOVACION)"],["prorrogada_renovada_hasta","PRORROGADA/RENOVADA HASTA (ACTUAL)"],["tipo_renovacion","TIPO DE RENOVACIÓN"],["numero_meses","NUMERO DE MESES CONVENIO"],["situacion_actual","SITUACION ACTUAL"],["ejecutivo_actual","EJECUTIVO ACTUAL"]
 ];
 const detailTenders=()=>tenders.filter(t=>(t.status==="Adjudicada"||t.status==="Detalle enviado")&&(manager()||assignments.some(a=>a.tender_id===t.id&&a.executive_id===user.id)));
+const executiveAssignedTenders=()=>tenders.filter(t=>assignments.some(a=>a.tender_id===t.id&&a.executive_id===user.id));
 const canUploadDetail=(tid)=>manager()||assignments.some(a=>a.tender_id===tid&&a.executive_id===user.id);
+function downloadDetailTemplate(){
+  if(typeof XLSX==="undefined"){message("No se pudo cargar el módulo de Excel.",true);return;}
+  const headers=DETAIL_COLUMNS.map(([,label])=>label);
+  const ws=XLSX.utils.aoa_to_sheet([headers]);
+  ws['!cols']=headers.map(h=>({wch:Math.min(Math.max(String(h).length+3,16),42)}));
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,"Detalle");
+  XLSX.writeFile(wb,"Formato_Detalle_Licitacion.xlsx");
+}
 function detailVisibleRows(){
   let rows=detailRows;
   if(detailTenderFilter!=="Todas")rows=rows.filter(r=>r.tender_id===detailTenderFilter);
@@ -119,9 +129,9 @@ function detailsHtml(){
   const situations=[...new Set(detailRows.map(r=>r.situacion_actual).filter(Boolean))].sort();
   const executives=[...new Set(detailRows.map(r=>r.ejecutivo_actual).filter(Boolean))].sort();
   const tendersWithDetails=detailTenders().filter(t=>detailUploads.some(u=>u.tender_id===t.id));
-  const canUploadAny=detailTenders().some(t=>canUploadDetail(t.id)&&!detailUploads.some(u=>u.tender_id===t.id));
+  const canUploadAny=manager()?false:executiveAssignedTenders().some(t=>!detailUploads.some(u=>u.tender_id===t.id));
   const bulkCount=detailUploads.filter(u=>u.is_bulk).length;
-  const uploadButtons=(manager()?'<button class="btn primary" id="upload-detail-bulk">＋ Cargar histórico</button>':'')+(canUploadAny?'<button class="btn primary" id="upload-detail">＋ Cargar detalle</button>':'')+(detailRows.length?'<button class="btn" id="export-detail">⇩ Exportar Excel</button>':'');
+  const uploadButtons=(manager()?'<button class="btn primary" id="upload-detail-bulk">＋ Cargar histórico</button>':'<button class="btn primary" id="upload-detail">＋ Cargar mi detalle</button>')+(manager()?'<button class="btn" id="download-detail-template">⇩ Descargar formato Excel</button>':'<button class="btn" id="download-detail-template">⇩ Descargar formato Excel</button>')+(detailRows.length?'<button class="btn" id="export-detail">⇩ Exportar Excel</button>':'');
   return '<div class="details-toolbar"><div class="search"><span>⌕</span><input id="detail-search" placeholder="Buscar en todos los campos…" value="'+esc(detailSearch)+'"></div><select id="detail-tender-filter" class="details-filter"><option>Todas las licitaciones</option>'+detailTenders().map(t=>'<option value="'+esc(t.id)+'" '+(detailTenderFilter===t.id?'selected':'')+'>'+esc(t.external_id||"Sin ID")+'</option>').join('')+'</select><select id="detail-area-filter" class="details-filter"><option>Todas las áreas</option>'+areas.map(x=>'<option '+(detailAreaFilter===x?'selected':'')+'>'+esc(x)+'</option>').join('')+'</select><select id="detail-situation-filter" class="details-filter"><option>Todas las situaciones</option>'+situations.map(x=>'<option '+(detailSituationFilter===x?'selected':'')+'>'+esc(x)+'</option>').join('')+'</select><select id="detail-executive-filter" class="details-filter"><option>Todos los ejecutivos</option>'+executives.map(x=>'<option '+(detailExecutiveFilter===x?'selected':'')+'>'+esc(x)+'</option>').join('')+'</select></div><div class="details-meta"><span>'+detailRows.length+' registro(s) históricos · '+tendersWithDetails.length+' licitación(es) con detalle'+(bulkCount?' · '+bulkCount+' carga(s) histórica(s)':'')+'</span><div style="display:flex;gap:7px;flex-wrap:wrap">'+uploadButtons+'</div></div>'+detailTableHtml()+(manager()?'<div class="detail-info">La jefatura puede cargar un Excel histórico con múltiples años y licitaciones mediante <b>＋ Cargar histórico</b>. No es necesario seleccionar una licitación.</div>':(detailTenders().length&&!tendersWithDetails.length?'<div class="detail-info">Los procesos adjudicados pueden recibir una sola carga de detalle. El ejecutivo responsable puede cargarla desde <b>＋ Cargar detalle</b>.</div>':''));
 }
 
@@ -210,8 +220,8 @@ function showBulkDetailUpload(){
   };
 }
 function showDetailUpload(){
-  const eligible=detailTenders().filter(t=>canUploadDetail(t.id)&&!detailUploads.some(u=>u.tender_id===t.id));
-  if(!eligible.length){message('No tienes licitaciones disponibles para cargar detalle.',true);return;}
+  const eligible=(manager()?detailTenders():executiveAssignedTenders()).filter(t=>canUploadDetail(t.id)&&!detailUploads.some(u=>u.tender_id===t.id));
+  if(!eligible.length){message(manager()?'No hay licitaciones disponibles para cargar detalle.':'No tienes licitaciones disponibles para cargar detalle. La carga individual se habilita una vez que tengas una licitación asignada sin detalle cargado.',true);return;}
   const opts=eligible.map(t=>'<option value="'+esc(t.id)+'">'+esc(t.external_id||'Sin ID')+' · '+esc(t.title||'')+'</option>').join('');
   $('#root').insertAdjacentHTML('beforeend','<div class="overlay" id="detail-upload-overlay"><form class="modal detail-upload-modal" id="detail-upload-form"><div class="modal-head"><div><h2>Cargar detalle de licitación</h2><p>Selecciona el proceso y adjunta el Excel oficial. La plataforma leerá el contenido y guardará solo los registros.</p></div><button type="button" class="quiet" id="detail-upload-close">✕</button></div><label>Licitación<select name="tender_id" required><option value="">Selecciona una licitación</option>'+opts+'</select></label><div class="detail-upload-box"><p>El Excel debe mantener exactamente las 26 columnas de la plantilla y contener un solo ID de licitación.</p><input name="file" type="file" accept=".xlsx,.xls" required></div><div class="actions"><button type="button" class="btn" id="detail-upload-cancel">Cancelar</button><button class="btn primary" id="detail-upload-save">Cargar detalle</button></div></form></div>');
   const close=()=>$('#detail-upload-overlay')?.remove();$('#detail-upload-close').onclick=$('#detail-upload-cancel').onclick=close;
@@ -363,6 +373,7 @@ $("#detail-situation-filter")?.addEventListener("change",e=>{detailSituationFilt
 $("#detail-executive-filter")?.addEventListener("change",e=>{detailExecutiveFilter=e.target.value;render();});
 $("#upload-detail")?.addEventListener("click",showDetailUpload);
 $("#upload-detail-bulk")?.addEventListener("click",showBulkDetailUpload);
+$("#download-detail-template")?.addEventListener("click",downloadDetailTemplate);
 $("#export-detail")?.addEventListener("click",exportDetailsExcel);
 document.querySelectorAll("[data-status-trigger]").forEach(b=>b.addEventListener("click",()=>showStatusMenu(b,b.dataset.statusTrigger)));
 document.querySelectorAll(".edit-dates").forEach(b=>b.onclick=()=>showTenderDates(b.dataset.tender));
