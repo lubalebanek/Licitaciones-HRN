@@ -79,7 +79,7 @@ render();
 async function loadDetailData(){
   detailLoading=true;
   const [u,r]=await Promise.all([
-    db.from("tender_detail_uploads").select("id,tender_id,file_name,uploaded_by,uploaded_at,rows_count").order("uploaded_at",{ascending:false}),
+    db.from("tender_detail_uploads").select("id,tender_id,file_name,uploaded_by,uploaded_at,rows_count,is_bulk,notes").order("uploaded_at",{ascending:false}),
     db.from("tender_detail_rows").select("*").order("tender_id").order("row_number")
   ]);
   if(u.error||r.error){detailLoading=false;message("No se pudieron cargar los detalles: "+(u.error?.message||r.error?.message||"Error desconocido"),true);return;}
@@ -90,7 +90,7 @@ async function loadDetailData(){
 const DETAIL_COLUMNS=[
   ["area","AREA"],["id_licitacion","ID"],["ente_tecnico","ENTE TECNICO"],["concepto","CONCEPTO"],["proveedor","PROVEEDOR"],["total_proveedores","TOTAL PROVEEDORES"],["rut_empresa","RUT EMPRESA"],["prestador_subcontratado","PRESTADOR (SUBCONTRATADO)"],["rut_prestador","RUT PRESTADOR"],["prestacion","PRESTACIÓN"],["especialidad","ESPECIALIDAD"],["cantidad","CANTIDAD"],["valor_prestacion","VALOR DE LA PRESTACIÓN"],["total_convenio","TOTAL CONVENIO"],["resolucion_adjudicacion","NUMERO DE RESOLUCION ADJUDICACION"],["fecha_resolucion_adjudicacion","FECHA DE RESOLUCION DE ADJUDICACION (FECHA DE INICIO)"],["fecha_adjudicacion_portal","FECHA ADJ (PORTAL)"],["resolucion_convenio","NUMERO RESOLUCIÓN CONVENIO"],["fecha_resolucion_convenio","FECHA DE RESOLUCION DE CONVENIO"],["termino","TÉRMINO"],["fecha_termino_maxima","FECHA DE TERMINO (MAXIMA VIGENCIA CON RENOVACION)"],["prorrogada_renovada_hasta","PRORROGADA/RENOVADA HASTA (ACTUAL)"],["tipo_renovacion","TIPO DE RENOVACIÓN"],["numero_meses","NUMERO DE MESES CONVENIO"],["situacion_actual","SITUACION ACTUAL"],["ejecutivo_actual","EJECUTIVO ACTUAL"]
 ];
-const detailTenders=()=>tenders.filter(t=>t.status==="Adjudicada"||t.status==="Detalle enviado");
+const detailTenders=()=>tenders.filter(t=>(t.status==="Adjudicada"||t.status==="Detalle enviado")&&(manager()||assignments.some(a=>a.tender_id===t.id&&a.executive_id===user.id)));
 const canUploadDetail=(tid)=>manager()||assignments.some(a=>a.tender_id===tid&&a.executive_id===user.id);
 function detailVisibleRows(){
   let rows=detailRows;
@@ -120,44 +120,121 @@ function detailsHtml(){
   const executives=[...new Set(detailRows.map(r=>r.ejecutivo_actual).filter(Boolean))].sort();
   const tendersWithDetails=detailTenders().filter(t=>detailUploads.some(u=>u.tender_id===t.id));
   const canUploadAny=detailTenders().some(t=>canUploadDetail(t.id)&&!detailUploads.some(u=>u.tender_id===t.id));
-  const tenderOptions=detailTenders().map(t=>'<option value="'+esc(t.id)+'">'+esc(t.external_id||"Sin ID")+' · '+esc(t.title||"")+'</option>').join("");
-  return '<div class="details-toolbar"><div class="search"><span>⌕</span><input id="detail-search" placeholder="Buscar en todos los campos…" value="'+esc(detailSearch)+'"></div><select id="detail-tender-filter" class="details-filter"><option>Todas las licitaciones</option>'+detailTenders().map(t=>'<option value="'+esc(t.id)+'" '+(detailTenderFilter===t.id?'selected':'')+'>'+esc(t.external_id||"Sin ID")+'</option>').join("")+'</select><select id="detail-area-filter" class="details-filter"><option>Todas las áreas</option>'+areas.map(x=>'<option '+(detailAreaFilter===x?'selected':'')+'>'+esc(x)+'</option>').join("")+'</select><select id="detail-situation-filter" class="details-filter"><option>Todas las situaciones</option>'+situations.map(x=>'<option '+(detailSituationFilter===x?'selected':'')+'>'+esc(x)+'</option>').join("")+'</select><select id="detail-executive-filter" class="details-filter"><option>Todos los ejecutivos</option>'+executives.map(x=>'<option '+(detailExecutiveFilter===x?'selected':'')+'>'+esc(x)+'</option>').join("")+'</select></div><div class="details-meta"><span>'+detailRows.length+' registro(s) históricos · '+tendersWithDetails.length+' licitación(es) con detalle</span><div style="display:flex;gap:7px">'+(canUploadAny?'<button class="btn primary" id="upload-detail">＋ Cargar detalle</button>':'')+(detailRows.length?'<button class="btn" id="export-detail">⇩ Exportar Excel</button>':'')+'</div></div>'+detailTableHtml()+(detailTenders().length&&!tendersWithDetails.length?'<div class="detail-info">Los procesos adjudicados pueden recibir una sola carga de detalle. El ejecutivo responsable o la jefatura puede cargarla desde <b>＋ Cargar detalle</b>.</div>':'');
+  const bulkCount=detailUploads.filter(u=>u.is_bulk).length;
+  const uploadButtons=(manager()?'<button class="btn primary" id="upload-detail-bulk">＋ Cargar histórico</button>':'')+(canUploadAny?'<button class="btn primary" id="upload-detail">＋ Cargar detalle</button>':'')+(detailRows.length?'<button class="btn" id="export-detail">⇩ Exportar Excel</button>':'');
+  return '<div class="details-toolbar"><div class="search"><span>⌕</span><input id="detail-search" placeholder="Buscar en todos los campos…" value="'+esc(detailSearch)+'"></div><select id="detail-tender-filter" class="details-filter"><option>Todas las licitaciones</option>'+detailTenders().map(t=>'<option value="'+esc(t.id)+'" '+(detailTenderFilter===t.id?'selected':'')+'>'+esc(t.external_id||"Sin ID")+'</option>').join('')+'</select><select id="detail-area-filter" class="details-filter"><option>Todas las áreas</option>'+areas.map(x=>'<option '+(detailAreaFilter===x?'selected':'')+'>'+esc(x)+'</option>').join('')+'</select><select id="detail-situation-filter" class="details-filter"><option>Todas las situaciones</option>'+situations.map(x=>'<option '+(detailSituationFilter===x?'selected':'')+'>'+esc(x)+'</option>').join('')+'</select><select id="detail-executive-filter" class="details-filter"><option>Todos los ejecutivos</option>'+executives.map(x=>'<option '+(detailExecutiveFilter===x?'selected':'')+'>'+esc(x)+'</option>').join('')+'</select></div><div class="details-meta"><span>'+detailRows.length+' registro(s) históricos · '+tendersWithDetails.length+' licitación(es) con detalle'+(bulkCount?' · '+bulkCount+' carga(s) histórica(s)':'')+'</span><div style="display:flex;gap:7px;flex-wrap:wrap">'+uploadButtons+'</div></div>'+detailTableHtml()+(manager()?'<div class="detail-info">La jefatura puede cargar un Excel histórico con múltiples años y licitaciones mediante <b>＋ Cargar histórico</b>. No es necesario seleccionar una licitación.</div>':(detailTenders().length&&!tendersWithDetails.length?'<div class="detail-info">Los procesos adjudicados pueden recibir una sola carga de detalle. El ejecutivo responsable puede cargarla desde <b>＋ Cargar detalle</b>.</div>':''));
+}
+
+function normalizeDetailHeader(value){
+  return String(value??'').trim().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/\\s+/g,' ').toUpperCase();
+}
+function detailExcelDateToISO(value){
+  if(value===null||value===undefined||value==='')return '';
+  if(value instanceof Date&&!Number.isNaN(value.getTime()))return value.toISOString().slice(0,10);
+  if(typeof value==='number'){
+    const d=XLSX.SSF.parse_date_code(value);
+    if(!d)throw new Error('Fecha Excel inválida: '+value);
+    return String(d.y).padStart(4,'0')+'-'+String(d.m).padStart(2,'0')+'-'+String(d.d).padStart(2,'0');
+  }
+  const raw=String(value).trim();
+  let m=raw.match(/^(\\d{1,2})[\\/.-](\\d{1,2})[\\/.-](\\d{4})$/);
+  if(m)return m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');
+  if(/^\\d{4}-\\d{2}-\\d{2}$/.test(raw))return raw;
+  throw new Error('Fecha inválida: "'+raw+'"');
+}
+function detailExcelNumber(value){
+  if(value===null||value===undefined||value==='')return '';
+  if(typeof value==='number'){
+    if(!Number.isFinite(value))throw new Error('Número inválido: '+value);
+    return String(value);
+  }
+  const raw=String(value).trim().replace(/\\s/g,'').replace(/\\$/g,'');
+  if(!raw)return '';
+  const normalized=raw.includes(',')&&raw.includes('.')?raw.replace(/\\./g,'').replace(',','.'):raw.replace(',','.');
+  const n=Number(normalized);
+  if(!Number.isFinite(n))throw new Error('Número inválido: "'+raw+'"');
+  return String(n);
+}
+const BULK_DETAIL_HEADERS=[
+  'AREA','ID','ENTE TECNICO','CONCEPTO','PROVEEDOR','TOTAL PROVEEDORES','RUT EMPRESA','PRESTADOR (SUBCONTRATADO)','RUT PRESTADOR','PRESTACIÓN','ESPECIALIDAD','CANTIDAD','VALOR DE LA PRESTACIÓN','TOTAL CONVENIO','NUMERO DE RESOLUCION ADJUDICACION','FECHA DE RESOLUCION DE ADJUDICACION (FECHA DE INICIO)','FECHA ADJ (PORTAL)','NUMERO RESOLUCIÓN CONVENIO','FECHA DE RESOLUCION DE CONVENIO','TÉRMINO','FECHA DE TERMINO (MAXIMA VIGENCIA CON RENOVACION)','PRORROGADA/RENOVADA HASTA (ACTUAL)','TIPO DE RENOVACIÓN','NUMERO DE MESES CONVENIO','SITUACION ACTUAL','EJECUTIVO ACTUAL'
+];
+async function parseBulkDetailExcel(file){
+  if(!(file instanceof File)||!file.name)throw new Error('Selecciona el Excel histórico.');
+  const ext=file.name.toLowerCase().split('.').pop();
+  if(!['xlsx','xls'].includes(ext||''))throw new Error('El archivo debe ser .xlsx o .xls');
+  const wb=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:true});
+  if(!wb.SheetNames.length)throw new Error('El Excel no contiene hojas');
+  const sheet=wb.Sheets[wb.SheetNames[0]];
+  const matrix=XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:true});
+  if(!matrix.length)throw new Error('El Excel está vacío');
+  const headers=(matrix[0]||[]).map(normalizeDetailHeader);
+  const expected=BULK_DETAIL_HEADERS.map(normalizeDetailHeader);
+  if(headers.length!==expected.length)throw new Error('El archivo debe tener exactamente 26 columnas. Se encontraron '+headers.length+'.');
+  const mismatches=[];
+  expected.forEach((h,i)=>{if(headers[i]!==h)mismatches.push('Columna '+(i+1)+': se esperaba "'+BULK_DETAIL_HEADERS[i]+'" y se encontró "'+(headers[i]||'(vacía)')+'"');});
+  if(mismatches.length)throw new Error('Formato de columnas incorrecto. '+mismatches.join(' | '));
+  const rows=matrix.slice(1).filter(row=>row.some(v=>String(v??'').trim()!==''));
+  if(!rows.length)throw new Error('El Excel no contiene registros');
+  const text=v=>v===null||v===undefined?'':String(v).trim();
+  const objects=rows.map(row=>{
+    const get=i=>row[i]??'';
+    return {
+      area:text(get(0)),id_licitacion:text(get(1)),ente_tecnico:text(get(2)),concepto:text(get(3)),proveedor:text(get(4)),
+      total_proveedores:detailExcelNumber(get(5)),rut_empresa:text(get(6)),prestador_subcontratado:text(get(7)),rut_prestador:text(get(8)),
+      prestacion:text(get(9)),especialidad:text(get(10)),cantidad:detailExcelNumber(get(11)),valor_prestacion:detailExcelNumber(get(12)),
+      total_convenio:detailExcelNumber(get(13)),resolucion_adjudicacion:text(get(14)),fecha_resolucion_adjudicacion:detailExcelDateToISO(get(15)),
+      fecha_adjudicacion_portal:detailExcelDateToISO(get(16)),resolucion_convenio:text(get(17)),fecha_resolucion_convenio:detailExcelDateToISO(get(18)),
+      termino:detailExcelDateToISO(get(19)),fecha_termino_maxima:detailExcelDateToISO(get(20)),prorrogada_renovada_hasta:detailExcelDateToISO(get(21)),
+      tipo_renovacion:text(get(22)),numero_meses:detailExcelNumber(get(23)),situacion_actual:text(get(24)),ejecutivo_actual:text(get(25))
+    };
+  });
+  const missing=objects.filter(r=>!r.id_licitacion).length;
+  if(missing)throw new Error('Hay '+missing+' registro(s) sin ID de licitación. El histórico debe contener el ID en todas las filas.');
+  return objects;
+}
+function showBulkDetailUpload(){
+  if(!manager()){message('Solo la jefatura puede cargar históricos.',true);return;}
+  $('#root').insertAdjacentHTML('beforeend','<div class="overlay" id="detail-bulk-overlay"><form class="modal detail-upload-modal" id="detail-bulk-form"><div class="modal-head"><div><h2>Cargar histórico de licitaciones</h2><p>Adjunta un Excel con múltiples años y licitaciones. No es necesario seleccionar una licitación.</p></div><button type="button" class="quiet" id="detail-bulk-close">✕</button></div><div class="detail-upload-box"><p>El Excel debe mantener exactamente las 26 columnas de la plantilla. Cada fila debe contener su ID de licitación.</p><input name="file" type="file" accept=".xlsx,.xls" required></div><label>Observación (opcional)<textarea name="notes" rows="3" placeholder="Ej.: Histórico 2022–2025 cargado por Jefatura"></textarea></label><div class="actions"><button type="button" class="btn" id="detail-bulk-cancel">Cancelar</button><button class="btn primary" id="detail-bulk-save">Cargar histórico</button></div></form></div>');
+  const close=()=>$('#detail-bulk-overlay')?.remove();$('#detail-bulk-close').onclick=$('#detail-bulk-cancel').onclick=close;
+  $('#detail-bulk-form').onsubmit=async(e)=>{
+    e.preventDefault();
+    const form=new FormData(e.target),button=$('#detail-bulk-save'),file=form.get('file'),notes=String(form.get('notes')||'').trim();
+    if(!(file instanceof File)||!file.name){message('Selecciona el Excel histórico.',true);return;}
+    button.disabled=true;button.textContent='Procesando histórico…';
+    try{
+      const rows=await parseBulkDetailExcel(file);
+      const {data,error}=await db.rpc('import_tender_detail_bulk',{p_file_name:file.name,p_rows:rows,p_notes:notes||null});
+      if(error)throw new Error(error.message||'No se pudo cargar el histórico.');
+      close();await loadDetailData();render();message('Histórico cargado correctamente. Se importaron '+rows.length+' registro(s).');
+    }catch(err){button.disabled=false;button.textContent='Cargar histórico';message(err?.message||String(err),true);}
+  };
 }
 function showDetailUpload(){
   const eligible=detailTenders().filter(t=>canUploadDetail(t.id)&&!detailUploads.some(u=>u.tender_id===t.id));
-  if(!eligible.length){message("No tienes licitaciones disponibles para cargar detalle.",true);return;}
-  const opts=eligible.map(t=>'<option value="'+esc(t.id)+'">'+esc(t.external_id||"Sin ID")+' · '+esc(t.title||"")+'</option>').join("");
-  $("#root").insertAdjacentHTML("beforeend",'<div class="overlay" id="detail-upload-overlay"><form class="modal detail-upload-modal" id="detail-upload-form"><div class="modal-head"><div><h2>Cargar detalle de licitación</h2><p>Selecciona el proceso y adjunta el Excel oficial. La plataforma leerá el contenido y guardará solo los registros.</p></div><button type="button" class="quiet" id="detail-upload-close">✕</button></div><label>Licitación<select name="tender_id" required><option value="">Selecciona una licitación</option>'+opts+'</select></label><div class="detail-upload-box"><p>El Excel debe mantener exactamente las 26 columnas de la plantilla y contener un solo ID de licitación.</p><input name="file" type="file" accept=".xlsx,.xls" required></div><div class="actions"><button type="button" class="btn" id="detail-upload-cancel">Cancelar</button><button class="btn primary" id="detail-upload-save">Cargar detalle</button></div></form></div>');
-  const close=()=>$("#detail-upload-overlay")?.remove();$("#detail-upload-close").onclick=$("#detail-upload-cancel").onclick=close;
-  $("#detail-upload-form").onsubmit=async(e)=>{
+  if(!eligible.length){message('No tienes licitaciones disponibles para cargar detalle.',true);return;}
+  const opts=eligible.map(t=>'<option value="'+esc(t.id)+'">'+esc(t.external_id||'Sin ID')+' · '+esc(t.title||'')+'</option>').join('');
+  $('#root').insertAdjacentHTML('beforeend','<div class="overlay" id="detail-upload-overlay"><form class="modal detail-upload-modal" id="detail-upload-form"><div class="modal-head"><div><h2>Cargar detalle de licitación</h2><p>Selecciona el proceso y adjunta el Excel oficial. La plataforma leerá el contenido y guardará solo los registros.</p></div><button type="button" class="quiet" id="detail-upload-close">✕</button></div><label>Licitación<select name="tender_id" required><option value="">Selecciona una licitación</option>'+opts+'</select></label><div class="detail-upload-box"><p>El Excel debe mantener exactamente las 26 columnas de la plantilla y contener un solo ID de licitación.</p><input name="file" type="file" accept=".xlsx,.xls" required></div><div class="actions"><button type="button" class="btn" id="detail-upload-cancel">Cancelar</button><button class="btn primary" id="detail-upload-save">Cargar detalle</button></div></form></div>');
+  const close=()=>$('#detail-upload-overlay')?.remove();$('#detail-upload-close').onclick=$('#detail-upload-cancel').onclick=close;
+  $('#detail-upload-form').onsubmit=async(e)=>{
     e.preventDefault();
-    const form=new FormData(e.target),button=$("#detail-upload-save"),file=form.get("file"),tenderId=String(form.get("tender_id")||"");
-    if(!(file instanceof File)||!file.name){message("Selecciona el Excel de detalle.",true);return;}
-    button.disabled=true;button.textContent="Procesando Excel…";
+    const form=new FormData(e.target),button=$('#detail-upload-save'),file=form.get('file'),tenderId=String(form.get('tender_id')||'');
+    if(!(file instanceof File)||!file.name){message('Selecciona el Excel de detalle.',true);return;}
+    button.disabled=true;button.textContent='Procesando Excel…';
     try{
-      const payload=new FormData();payload.append("file",file);payload.append("tender_id",tenderId);
-      const {data,error}=await db.functions.invoke("import-tender-detail",{body:payload});
-      if(error||data?.ok===false){let detail=data?.error||error?.message||"No se pudo importar el detalle.";throw new Error(detail);}
+      const payload=new FormData();payload.append('file',file);payload.append('tender_id',tenderId);
+      const {data,error}=await db.functions.invoke('import-tender-detail',{body:payload});
+      if(error||data?.ok===false){let detail=data?.error||error?.message||'No se pudo importar el detalle.';throw new Error(detail);}
       const tender=tenders.find(t=>t.id===tenderId);
-      if(tender&&tender.status!=="Detalle enviado"){
+      if(tender&&tender.status!=='Detalle enviado'){
         const oldStatus=tender.status;
-        const {error:statusError}=await db.from("tenders").update({status:"Detalle enviado",updated_at:new Date().toISOString()}).eq("id",tenderId);
-        if(!statusError)await db.from("tender_status_history").insert({tender_id:tenderId,from_status:oldStatus,to_status:"Detalle enviado",changed_by:user.id,note:"Detalle importado desde Excel"});
+        const {error:statusError}=await db.from('tenders').update({status:'Detalle enviado',updated_at:new Date().toISOString()}).eq('id',tenderId);
+        if(!statusError)await db.from('tender_status_history').insert({tender_id:tenderId,from_status:oldStatus,to_status:'Detalle enviado',changed_by:user.id,note:'Detalle importado desde Excel'});
       }
-      close();await load();await loadDetailData();render();message("Detalle cargado correctamente. Se importaron "+(data?.rows_count||0)+" registro(s).");
-    }catch(err){button.disabled=false;button.textContent="Cargar detalle";message(err?.message||String(err),true);}
+      close();await load();await loadDetailData();render();message('Detalle cargado correctamente. Se importaron '+(data?.rows_count||0)+' registro(s).');
+    }catch(err){button.disabled=false;button.textContent='Cargar detalle';message(err?.message||String(err),true);}
   };
 }
-function exportDetailsExcel(){
-  const rows=detailVisibleRows();
-  if(!rows.length){message("No hay registros para exportar con los filtros actuales.",true);return;}
-  if(typeof XLSX==="undefined"){message("No se pudo cargar el módulo de exportación Excel.",true);return;}
-  const data=rows.map(r=>{const o={};DETAIL_COLUMNS.forEach(([key,label])=>o[label]=detailValue(r,key));return o;});
-  const ws=XLSX.utils.json_to_sheet(data,{header:DETAIL_COLUMNS.map(([,label])=>label)});
-  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Detalle");
-  const tenderLabel=detailTenderFilter!=="Todas"?(tenders.find(t=>t.id===detailTenderFilter)?.external_id||"licitacion") : "detalles_licitaciones";
-  XLSX.writeFile(wb,tenderLabel.replace(/[^a-z0-9_-]+/gi,"_")+"_detalle.xlsx");
-}
+
 function ownerName(tid){const a=assignments.find(x=>x.tender_id===tid);return a?(people.find(p=>p.id===a.executive_id)?.full_name||"Ejecutivo"):"Sin asignar";}
 function visible(){
 let out=tenders;
@@ -261,7 +338,7 @@ function render(){
 if(!user||!profile){gate();return;}
 const list=visible(),dates=deadlines(),active=tenders.filter(t=>t.status!=="Detalle enviado"),closed=tenders.filter(t=>t.status==="Detalle enviado");
 const title=activeTab==="Resumen"?"Resumen":activeTab;
-const nav=manager()?["Resumen","Derivación de licitaciones","Mis licitaciones","Calendario","Detalles"]:["Resumen","Mis licitaciones","Calendario"];
+const nav=manager()?["Resumen","Derivación de licitaciones","Mis licitaciones","Calendario","Detalles"]:["Resumen","Mis licitaciones","Calendario","Detalles"];
 $("#root").innerHTML='<div class="app"><aside class="sidebar"><div class="brand"><div class="logo">L</div><div><b>licitaciones</b><small>UNIDAD DE ABASTECIMIENTO</small></div></div><div class="org"><span class="org-icon">H</span><span><b>Hospital Regional de Ñuble</b><small>Unidad de licitaciones</small></span></div><p class="nav-label">ESPACIO DE TRABAJO</p><nav class="nav">'+nav.map((n,i)=>'<button data-tab="'+esc(n)+'" class="'+(activeTab===n?'selected':'')+'"><span class="glyph">'+["◫","↙","▤","▦","◷"][i]+'</span><span>'+esc(n)+'</span>'+'</button>').join("")+(manager()?'<p class="nav-label" style="margin-top:24px">ADMINISTRACIÓN</p><button data-tab="Seguimiento" class="'+(activeTab==="Seguimiento"?"selected":"")+'"><span class="glyph">◎</span><span>Seguimiento general</span></button><button data-tab="Historial" class="'+(activeTab==="Historial"?"selected":"")+'"><span class="glyph">◷</span><span>Historial</span></button><button data-tab="Equipo" class="'+(activeTab==="Equipo"?"selected":"")+'"><span class="glyph">♙</span><span>Equipo</span></button>':'')+'</nav><div class="side-bottom"><div class="account"><span class="avatar">'+initials(profile.full_name||user.email)+'</span><span class="who"><b>'+esc(profile.full_name||user.email)+'</b><small>'+(manager()?"Jefatura":"Ejecutivo")+'</small></span><button class="quiet" id="logout" title="Cerrar sesión">↗</button></div></div></aside><section class="main"><header class="top"><span class="crumb">Licitaciones &nbsp;›&nbsp; <b>'+esc(title)+'</b></span><div class="topright"><span class="online"><i></i> Conectado</span><span>'+esc(user.email)+'</span></div></header><div class="content"><div class="headline"><div><div class="eyebrow">'+new Intl.DateTimeFormat("es-CL",{weekday:"long",day:"numeric",month:"long",year:"numeric",timeZone:"America/Santiago"}).format(new Date()).toUpperCase()+'</div><h1>'+(activeTab==="Resumen"?"Panel de licitaciones":esc(title))+'</h1><p>Seguimiento de procesos de la unidad, según tus permisos.</p></div>'+((manager()&&activeTab==="Derivación de licitaciones")||(!manager()&&activeTab==="Mis licitaciones")?'<button id="new" class="btn primary">＋ Nueva licitación</button>':'')+'</div>'+(notice?'<div class="notice '+(noticeError?'error':'')+'">'+esc(notice)+'</div>':'')+(activeTab==="Resumen"||activeTab==="Seguimiento"?'<div class="stats">'+(manager()?'<article class="stat"><label>Licitaciones activas <span class="symbol">▤</span></label><strong>'+active.length+'</strong><small>Accesibles con tu perfil</small></article><article class="stat"><label>En evaluación <span class="symbol">◷</span></label><strong>'+tenders.filter(t=>t.status==="En evaluación de ofertas").length+'</strong><small>Requieren seguimiento</small></article><article class="stat"><label>Próximos hitos <span class="symbol">▦</span></label><strong>'+dates.length+'</strong><small>Fechas futuras registradas</small></article><article class="stat"><label>Detalles enviados <span class="symbol">✓</span></label><strong>'+closed.length+'</strong><small>Detalles enviados</small></article>':'<article class="stat"><label>Licitaciones activas <span class="symbol">▤</span></label><strong>'+active.length+'</strong><small>En gestión</small></article><article class="stat"><label>Próximos 7 días <span class="symbol">◷</span></label><strong>'+dates.filter(x=>{const d=new Date(x.date+"T12:00:00"),today=new Date(new Intl.DateTimeFormat("sv-SE",{timeZone:"America/Santiago"}).format(new Date())+"T12:00:00");const lim=new Date(today);lim.setDate(lim.getDate()+7);return d>=today&&d<=lim;}).length+'</strong><small>Hitos por atender</small></article><article class="stat"><label>Requieren atención <span class="symbol">!</span></label><strong>'+active.filter(t=>!t.publication_date||!t.tender_close_date).length+'</strong><small>Fechas clave pendientes</small></article><article class="stat"><label>Detalles enviados <span class="symbol">✓</span></label><strong>'+closed.length+'</strong><small>Detalles enviados</small></article>')+'</div>':'')+(activeTab==="Resumen"&&!manager()?executiveSummaryHtml(active,dates,closed):'<div class="grid"><section class="panel"><div class="panel-head"><div><h2>'+(activeTab==="Calendario"?"Calendario de hitos":activeTab==="Detalles"?"Detalles de licitaciones":activeTab==="Historial"?"Historial de estados":activeTab==="Equipo"?"Equipo de licitaciones":"Licitaciones")+'</h2><p>Información sincronizada con Supabase</p></div><button class="link" id="refresh">Actualizar ↻</button></div>'+(activeTab==="Calendario"?'<div class="monthbar"><button class="iconbtn" id="prev">‹</button><strong>'+new Intl.DateTimeFormat("es-CL",{month:"long",year:"numeric"}).format(month)+'</strong><button class="iconbtn" id="next">›</button></div>'+calendarHtml():activeTab==="Historial"?historyHtml():activeTab==="Equipo"?teamHtml():activeTab==="Detalles"?detailsHtml():(activeTab!=="Resumen"&&activeTab!=="Seguimiento"?'<div class="toolbar"><div class="search"><span>⌕</span><input id="search" placeholder="Buscar por ID, título o área…" value="'+esc(search)+'"></div><select id="filter" class="filter"><option>Todas</option>'+states.map(s=>'<option '+(stateFilter===s?'selected':'')+'>'+esc(s)+'</option>').join("")+'</select></div>':'')+((activeTab==="Historial"||activeTab==="Equipo"||activeTab==="Calendario"||activeTab==="Detalles")?"":tableHtml(list)))+'<div class="panel-head" style="margin:14px 0 0;padding-top:10px;border-top:1px solid #edf0f4"><p>Mostrando '+list.length+' licitación(es)</p><span class="muted">RLS activo</span></div></section><aside class="aside-panels"><section class="panel"><div class="panel-head"><div><h2>Próximos hitos</h2><p>Fechas de publicación y cierre</p></div></div>'+(dates.slice(0,4).map(x=>'<div class="deadline"><span class="date"><b>'+new Date(x.date+"T12:00:00").getDate()+'</b><small>'+new Intl.DateTimeFormat("es-CL",{month:"short",timeZone:"America/Santiago"}).format(new Date(x.date+"T12:00:00")).toUpperCase()+'</small></span><span class="desc"><b>'+esc(x.label)+'</b><small>'+esc(x.t.external_id)+' · '+esc(x.t.area||"Sin área")+'</small></span></div>').join("")||'<div class="empty">No hay fechas futuras registradas.</div>')+'<button id="goto-calendar" class="link" style="width:100%;padding-top:13px">Ver calendario completo ›</button></section><section class="panel"><div class="panel-head"><div><h2>Estados</h2><p>Distribución de las licitaciones</p></div></div>'+states.map(s=>'<div class="state-line"><span class="pill '+stateClass(s)+'"><i></i>'+esc(s)+'</span><strong>'+tenders.filter(t=>t.status===s).length+'</strong></div>').join("")+'</section></aside></div>')+'<footer>Unidad de Licitaciones <span>·</span><span>Los accesos se controlan en Supabase</span></footer></div></section></div>';
 document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=async()=>{activeTab=b.dataset.tab;notice="";render();if(activeTab==="Detalles"){await loadDetailData();render();}});
 const passwordButton=document.createElement("button");passwordButton.id="change-password";passwordButton.innerHTML='<span class="glyph">⚿</span><span>Cambiar contraseña</span>';$(".nav").append(passwordButton);passwordButton.onclick=showPasswordForm;
@@ -285,6 +362,7 @@ $("#detail-area-filter")?.addEventListener("change",e=>{detailAreaFilter=e.targe
 $("#detail-situation-filter")?.addEventListener("change",e=>{detailSituationFilter=e.target.value;render();});
 $("#detail-executive-filter")?.addEventListener("change",e=>{detailExecutiveFilter=e.target.value;render();});
 $("#upload-detail")?.addEventListener("click",showDetailUpload);
+$("#upload-detail-bulk")?.addEventListener("click",showBulkDetailUpload);
 $("#export-detail")?.addEventListener("click",exportDetailsExcel);
 document.querySelectorAll("[data-status-trigger]").forEach(b=>b.addEventListener("click",()=>showStatusMenu(b,b.dataset.statusTrigger)));
 document.querySelectorAll(".edit-dates").forEach(b=>b.onclick=()=>showTenderDates(b.dataset.tender));
