@@ -4,7 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Licitaciones | Hospital Regional de Ñuble</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <style>
 :root{--navy:#142744;--blue:#315fe8;--muted:#78869b;--line:#e7ebf1;--bg:#f6f8fb;--white:#fff;--green:#328b62;--shadow:0 8px 28px #1c37620c}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--navy);font:14px Inter,"Segoe UI",Arial,sans-serif}button,input,select{font:inherit}button{cursor:pointer}button:disabled{opacity:.6;cursor:wait}
@@ -96,10 +96,53 @@ const canUploadDetail=(tid)=>manager()||assignments.some(a=>a.tender_id===tid&&a
 function downloadDetailTemplate(){
   if(typeof XLSX==="undefined"){message("No se pudo cargar el módulo de Excel.",true);return;}
   const headers=DETAIL_COLUMNS.map(([,label])=>label);
-  const ws=XLSX.utils.aoa_to_sheet([headers]);
-  ws['!cols']=headers.map(h=>({wch:Math.min(Math.max(String(h).length+3,16),42)}));
+  const blankRows=Array.from({length:20},()=>headers.map(()=>""));
+  const ws=XLSX.utils.aoa_to_sheet([headers,...blankRows]);
+  ws['!cols']=headers.map(h=>({wch:Math.min(Math.max(String(h).length+3,18),44)}));
+  ws['!rows']=[{hpt:42},...blankRows.map(()=>({hpt:22}))];
+  ws['!freeze']={xSplit:0,ySplit:1};
+  ws['!autofilter']={ref:'A1:Z21'};
+  const headerStyle={
+    fill:{patternType:'solid',fgColor:{rgb:'1F4E78'}},
+    font:{name:'Aptos',sz:10,bold:true,color:{rgb:'FFFFFF'}},
+    alignment:{horizontal:'center',vertical:'center',wrapText:true},
+    border:{top:{style:'thin',color:{rgb:'B8C7D9'}},bottom:{style:'thin',color:{rgb:'B8C7D9'}},left:{style:'thin',color:{rgb:'B8C7D9'}},right:{style:'thin',color:{rgb:'B8C7D9'}}}
+  };
+  const cellBorder={
+    border:{top:{style:'thin',color:{rgb:'D9E3F0'}},bottom:{style:'thin',color:{rgb:'D9E3F0'}},left:{style:'thin',color:{rgb:'D9E3F0'}},right:{style:'thin',color:{rgb:'D9E3F0'}}},
+    alignment:{vertical:'center',wrapText:true},
+    font:{name:'Aptos',sz:10,color:{rgb:'40536D'}}
+  };
+  for(let c=0;c<headers.length;c++){
+    const addr=XLSX.utils.encode_cell({r:0,c});
+    ws[addr].s=headerStyle;
+    for(let r=1;r<=20;r++){
+      const a=XLSX.utils.encode_cell({r,c});
+      ws[a]=ws[a]||{v:'',t:'s'};
+      ws[a].s=cellBorder;
+      if(r%2===0)ws[a].s={...cellBorder,fill:{patternType:'solid',fgColor:{rgb:'F4F8FC'}}};
+    }
+  }
+  const info=[
+    ['FORMATO DE DETALLE DE LICITACIONES',''],
+    ['Cómo utilizar este archivo',''],
+    ['1. No modificar, eliminar ni cambiar el orden de las 26 columnas de la hoja “Detalle”.',''],
+    ['2. Cada fila corresponde a un registro del detalle de una licitación.',''],
+    ['3. El Ejecutivo debe cargar el detalle de una sola licitación y seleccionar esa licitación en la plataforma.',''],
+    ['4. La Jefatura puede utilizar este mismo formato para cargar históricos de múltiples años y licitaciones.',''],
+    ['5. Mantén el ID de licitación en todas las filas.',''],
+    ['6. Las fechas pueden ingresarse como fechas normales de Excel.','']
+  ];
+  const wi=XLSX.utils.aoa_to_sheet(info);
+  wi['!cols']=[{wch:105},{wch:4}];
+  wi['!rows']=[{hpt:30},{hpt:24},...Array(6).fill({hpt:22})];
+  wi['A1'].s={fill:{patternType:'solid',fgColor:{rgb:'1F4E78'}},font:{name:'Aptos Display',sz:16,bold:true,color:{rgb:'FFFFFF'}},alignment:{vertical:'center'}};
+  wi['A2'].s={fill:{patternType:'solid',fgColor:{rgb:'DCEAF7'}},font:{name:'Aptos',sz:11,bold:true,color:{rgb:'1F4E78'}},alignment:{vertical:'center'}};
+  for(let r=2;r<info.length;r++)wi['A'+(r+1)].s={font:{name:'Aptos',sz:10,color:{rgb:'40536D'}},alignment:{vertical:'center',wrapText:true}};
+  wi['!merges']=[{s:{r:0,c:0},e:{r:0,c:1}},{s:{r:1,c:0},e:{r:1,c:1}},{s:{r:2,c:0},e:{r:2,c:1}},{s:{r:3,c:0},e:{r:3,c:1}},{s:{r:4,c:0},e:{r:4,c:1}},{s:{r:5,c:0},e:{r:5,c:1}},{s:{r:6,c:0},e:{r:6,c:1}},{s:{r:7,c:0},e:{r:7,c:1}}];
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,"Detalle");
+  XLSX.utils.book_append_sheet(wb,wi,"Instrucciones");
   XLSX.writeFile(wb,"Formato_Detalle_Licitacion.xlsx");
 }
 function detailVisibleRows(){
