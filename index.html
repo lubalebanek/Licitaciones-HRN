@@ -503,6 +503,35 @@ document.querySelectorAll("[data-status-trigger]").forEach(b=>b.addEventListener
 document.querySelectorAll(".edit-dates").forEach(b=>b.onclick=()=>showTenderDates(b.dataset.tender));
 document.querySelectorAll(".tender-id").forEach(b=>b.onclick=()=>showTenderDetail(b.dataset.tender));
 document.querySelectorAll(".team-action").forEach(b=>b.onclick=()=>manageTeamUser(b.dataset.action,b.dataset.user,b.dataset.name));
+document.querySelectorAll("[data-exec-toggle]").forEach(b=>{
+  b.onclick=()=>{
+    const id=b.dataset.execToggle;
+    if(expandedExecutives.has(id)) expandedExecutives.delete(id);
+    else expandedExecutives.add(id);
+    render();
+  };
+});
+
+document.querySelectorAll("[data-priority-set]").forEach(b=>{
+  b.onclick=()=>showPriorityForm(b.dataset.prioritySet,false);
+});
+
+document.querySelectorAll("[data-priority-clear]").forEach(b=>{
+  b.onclick=()=>showPriorityForm(b.dataset.priorityClear,true);
+});
+
+document.querySelectorAll("[data-priority-view]").forEach(b=>{
+  b.onclick=()=>{
+    const id=b.dataset.priorityView;
+    const tender=tenders.find(x=>x.id===id);
+    if(!tender)return;
+    search=tender.external_id||"";
+    activeTab="Mis licitaciones";
+    render();
+  };
+});
+
+
 }
 function teamHtml(){
   if(!teamPeople.length)return '<div class="empty">No hay personas registradas en el equipo.</div>';
