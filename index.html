@@ -25,6 +25,7 @@
 @media(max-width:720px){.sidebar{width:59px;padding:14px 7px}.brand{justify-content:center;padding:0 0 15px}.brand>div:nth-child(2),.org,.nav-label,.nav button span:not(.glyph),.account .who,.account .quiet{display:none}.nav button{justify-content:center;padding:0}.account{justify-content:center;padding:12px 0 0}.main{margin-left:59px}.top{padding:0 13px}.topright{gap:8px}.content{padding:20px 12px}.headline{align-items:flex-start;gap:13px;flex-direction:column}.headline h1{font-size:21px}.stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.stat{padding:12px;min-height:94px}.aside-panels{display:flex;flex-direction:column}.toolbar{flex-wrap:wrap}.search{flex-basis:100%}.calendar{grid-template-columns:repeat(7,minmax(52px,1fr))}.day{padding:5px;min-height:58px}.event{font-size:7px;padding:3px}.foot-right{float:none;display:block;margin-top:5px}.topright .online{font-size:0}.topright .online i{width:8px;height:8px}}
 @media(max-width:420px){.filter{max-width:145px}.formgrid{grid-template-columns:1fr}}
 .exec-groups{display:flex;flex-direction:column;gap:8px}.exec-group{border:1px solid #e6ebf2;border-radius:9px;background:#fff;overflow:hidden}.exec-group.open{box-shadow:0 4px 14px #1c37620a}.exec-group-head{width:100%;display:flex;align-items:center;gap:10px;border:0;background:#fff;padding:13px 14px;text-align:left;color:var(--navy)}.exec-group-head:hover{background:#f8faff}.exec-chevron{width:14px;color:#7a8aa0;font-size:10px}.exec-group-head .avatar{width:31px;height:31px;font-size:9px}.exec-name{min-width:0;flex:1}.exec-name b,.exec-name small{display:block}.exec-name b{font-size:11px}.exec-name small{font-size:9px;color:#8e9aab;margin-top:3px}.exec-count{min-width:27px;height:27px;padding:0 8px;border-radius:14px;background:#eef2ff;color:var(--blue);display:grid;place-items:center;font-size:10px;font-weight:700}.exec-group-body{border-top:1px solid #edf0f4;padding:0 14px}.exec-group-body table{margin-bottom:2px}.priority-action{border:1px solid #e7c5c2;background:#fff7f6;color:#b64c45;border-radius:6px;padding:6px 9px;font-size:9px;font-weight:700;cursor:pointer}.priority-action:hover{background:#fff0ee}.priority-action.active{background:#fff0ee;border-color:#efc0bc}.priority-tag{display:inline-flex;align-items:center;border-radius:12px;background:#fff0ee;color:#b64c45;padding:5px 8px;font-size:9px;font-weight:700}.priority-alert-panel{background:#fff;border:1px solid #efc7c3;border-left:4px solid #d9534f;border-radius:9px;margin-bottom:15px;padding:14px 16px;box-shadow:var(--shadow)}.priority-alert-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:7px}.priority-alert-head h2{font-size:13px;margin:0 0 4px}.priority-alert-head p{font-size:10px;color:#8d98a8;margin:0}.priority-alert-head>span{font-size:9px;color:#b64c45;font-weight:700}.priority-alert-item{display:flex;align-items:center;gap:10px;border-top:1px solid #f0e3e2;padding:10px 0}.priority-alert-icon{width:25px;height:25px;border-radius:50%;background:#fff0ee;color:#c34f48;display:grid;place-items:center;font-weight:800;font-size:11px;flex:none}.priority-alert-copy{min-width:0;flex:1}.priority-alert-copy b,.priority-alert-copy small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.priority-alert-copy b{font-size:10px}.priority-alert-copy small{font-size:9px;color:#9a6e6b;margin-top:3px}.priority-modal-tender{background:#f7f9fc;border:1px solid #e8edf3;border-radius:7px;padding:10px 11px;margin:8px 0 14px}</style>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 <div id="root"><main class="gate"><section class="gatecard"><div class="logo">L</div><h1>Conectando…</h1><p>Preparando el espacio de licitaciones.</p></section></main></div>
@@ -212,7 +213,7 @@ function detailsHtml(){
   const tendersWithDetails=detailTenders().filter(t=>detailUploads.some(u=>u.tender_id===t.id));
   const canUploadAny=manager()?false:executiveAssignedTenders().some(t=>!detailUploads.some(u=>u.tender_id===t.id));
   const bulkCount=detailUploads.filter(u=>u.is_bulk).length;
-  const uploadButtons=(manager()?'<button class="btn primary" id="upload-detail-bulk">＋ Cargar histórico</button>':'<button class="btn primary" id="upload-detail">＋ Cargar mi detalle</button>')+(manager()?'<button class="btn" id="download-detail-template">⇩ Descargar formato Excel</button>':'<button class="btn" id="download-detail-template">⇩ Descargar formato Excel</button>')+(detailRows.length?'<button class="btn" id="export-detail">⇩ Exportar Excel</button>':'');
+  const uploadButtons=(manager()?'<button class="btn primary" id="upload-detail-bulk">＋ Cargar histórico</button>':'<button class="btn primary" id="upload-detail">＋ Cargar mi detalle</button>')+(manager()?'<button class="btn" id="download-detail-template">⇩ Descargar formato Excel</button>':'<button class="btn" id="download-detail-template">⇩ Descargar formato Excel</button>')+(detailRows.length?'<button class="btn" id="export-detail" data-export-current-details="1">⇩ Exportar Excel</button>':'');
   return '<div class="details-toolbar"><div class="search"><span>⌕</span><input id="detail-search" placeholder="Buscar en todos los campos…" value="'+esc(detailSearch)+'"></div>' + renderDetailTenderFilter() + renderDetailSingleFilter("detail-area-filter","Todas las áreas",areas,detailAreaFilter) + renderDetailSingleFilter("detail-situation-filter","Todas las situaciones",situations,detailSituationFilter) + renderDetailSingleFilter("detail-executive-filter","Todos los ejecutivos",executives,detailExecutiveFilter) + '</div><div class="details-meta"><span>'+detailRows.length+' registro(s) históricos · '+tendersWithDetails.length+' licitación(es) con detalle'+(bulkCount?' · '+bulkCount+' carga(s) histórica(s)':'')+'</span><div style="display:flex;gap:7px;flex-wrap:wrap">'+uploadButtons+'</div></div>'+detailTableHtml()+(manager()?'<div class="detail-info">La jefatura puede cargar un Excel histórico con múltiples años y licitaciones mediante <b>＋ Cargar histórico</b>. No es necesario seleccionar una licitación.</div>':(detailTenders().length&&!tendersWithDetails.length?'<div class="detail-info">Los procesos adjudicados pueden recibir una sola carga de detalle. El ejecutivo responsable puede cargarla desde <b>＋ Cargar detalle</b>.</div>':''));
 }
 
@@ -465,6 +466,81 @@ function executiveSummaryHtml(active,dates,closed){
   const groups=(redCount||orangeCount||yellowCount)?'<div class="alerts-summary">'+(redCount?'<div><div class="alert-group-title red">🔴 Atrasadas <span>('+redCount+')</span></div></div>':'')+(orangeCount?'<div><div class="alert-group-title orange">🟠 Vencen hoy o mañana <span>('+orangeCount+')</span></div></div>':'')+(yellowCount?'<div><div class="alert-group-title yellow">🟡 Próximos 7 días <span>('+yellowCount+')</span></div></div>':'')+'</div>':'';
   return '<div class="summary-grid"><section class="panel alerts-panel"><div class="panel-head"><div><h2>🔔 Alertas</h2><p>Atrasos y fechas próximas a vencer.</p></div><span class="muted">'+alerts.length+' alerta'+(alerts.length===1?"":"s")+'</span></div>'+alertHtml+'</section><section class="panel"><div class="panel-head"><div><h2>Requieren atención</h2><p>Información que debes completar en tus licitaciones.</p></div><button class="link" id="goto-my-tenders">Ver mis licitaciones ›</button></div>'+attentionHtml+'</section><section class="panel"><div class="panel-head"><div><h2>Próximos hitos</h2><p>Fechas que requieren seguimiento durante los próximos 7 días.</p></div><button class="link" id="goto-calendar">Ver calendario ›</button></div>'+upcomingHtml+'</section></div>';
 }
+
+function exportCurrentDetailsExcel(){
+  try{
+    const rows = Array.isArray(detailRows) ? detailRows : [];
+    const filtered = typeof getFilteredDetailRows === "function"
+      ? getFilteredDetailRows()
+      : rows;
+
+    if(!filtered.length){
+      message("No hay registros para exportar con los filtros actuales.", true);
+      return;
+    }
+
+    const data = filtered.map(r => ({
+      "Área": r.area || "",
+      "ID Licitación": r.id_licitacion || "",
+      "Ente Técnico": r.ente_tecnico || "",
+      "Concepto": r.concepto || "",
+      "Proveedor": r.proveedor || "",
+      "Total Proveedores": r.total_proveedores ?? "",
+      "RUT Empresa": r.rut_empresa || "",
+      "Prestador Subcontratado": r.prestador_subcontratado || "",
+      "RUT Prestador": r.rut_prestador || "",
+      "Prestación": r.prestacion || "",
+      "Especialidad": r.especialidad || "",
+      "Cantidad": r.cantidad ?? "",
+      "Valor Prestación": r.valor_prestacion ?? "",
+      "Total Convenio": r.total_convenio ?? "",
+      "Resolución Adjudicación": r.resolucion_adjudicacion || "",
+      "Fecha Resolución Adjudicación": r.fecha_resolucion_adjudicacion || "",
+      "Fecha Adjudicación Portal": r.fecha_adjudicacion_portal || "",
+      "Resolución Convenio": r.resolucion_convenio || "",
+      "Fecha Resolución Convenio": r.fecha_resolucion_convenio || "",
+      "Término": r.termino || "",
+      "Fecha Término Máxima": r.fecha_termino_maxima || "",
+      "Prorrogada/Renovada Hasta": r.prorrogada_renovada_hasta || "",
+      "Tipo Renovación": r.tipo_renovacion || "",
+      "Número Meses": r.numero_meses ?? "",
+      "Situación Actual": r.situacion_actual || "",
+      "Ejecutivo Actual": r.ejecutivo_actual || ""
+    }));
+
+    if(window.XLSX){
+      const ws = XLSX.utils.json_to_sheet(data);
+      ws["!cols"] = Object.keys(data[0]).map(k => ({
+        wch: Math.min(45, Math.max(12, k.length + 2))
+      }));
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Detalles");
+      const stamp = new Date().toISOString().slice(0,10);
+      XLSX.writeFile(wb, `Detalles_Licitaciones_${stamp}.xlsx`);
+    }else{
+      const headers = Object.keys(data[0]);
+      const csv = [
+        headers.join(";"),
+        ...data.map(row => headers.map(h =>
+          `"${String(row[h] ?? "").replaceAll('"','""')}"`
+        ).join(";"))
+      ].join("\n");
+      const blob = new Blob(["\ufeff"+csv], {type:"text/csv;charset=utf-8;"});
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `Detalles_Licitaciones_${new Date().toISOString().slice(0,10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+    }
+    message(`${filtered.length} registro(s) exportado(s) correctamente.`);
+  }catch(err){
+    console.error(err);
+    message("No se pudo exportar el detalle: "+(err?.message||err), true);
+  }
+}
+
 function render(){
 if(!user||!profile){gate();return;}
 const list=visible(),dates=deadlines(),active=tenders.filter(t=>t.status!=="Detalle enviado"),closed=tenders.filter(t=>t.status==="Detalle enviado");
@@ -508,6 +584,15 @@ $("#upload-detail-bulk")?.addEventListener("click",showBulkDetailUpload);
 $("#download-detail-template")?.addEventListener("click",downloadDetailTemplate);
 $("#export-detail")?.addEventListener("click",exportDetailsExcel);
 document.querySelectorAll("[data-status-trigger]").forEach(b=>b.addEventListener("click",()=>showStatusMenu(b,b.dataset.statusTrigger)));
+const exportDetailBtn=document.getElementById("export-detail");
+if(exportDetailBtn)exportDetailBtn.addEventListener("click",e=>{
+  e.preventDefault();
+  exportCurrentDetailsExcel();
+});
+document.querySelectorAll("[data-export-current-details]").forEach(b=>b.addEventListener("click",e=>{
+  e.preventDefault();
+  exportCurrentDetailsExcel();
+}));
 document.querySelectorAll("[data-exec-toggle]").forEach(b=>b.addEventListener("click",e=>{
   e.stopPropagation();
   const id=b.dataset.execToggle;
