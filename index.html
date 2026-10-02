@@ -26,6 +26,133 @@
 @media(max-width:420px){.filter{max-width:145px}.formgrid{grid-template-columns:1fr}}
 .exec-groups{display:flex;flex-direction:column;gap:8px}.exec-group{border:1px solid #e6ebf2;border-radius:9px;background:#fff;overflow:hidden}.exec-group.open{box-shadow:0 4px 14px #1c37620a}.exec-group-head{width:100%;display:flex;align-items:center;gap:10px;border:0;background:#fff;padding:13px 14px;text-align:left;color:var(--navy)}.exec-group-head:hover{background:#f8faff}.exec-chevron{width:14px;color:#7a8aa0;font-size:10px}.exec-group-head .avatar{width:31px;height:31px;font-size:9px}.exec-name{min-width:0;flex:1}.exec-name b,.exec-name small{display:block}.exec-name b{font-size:11px}.exec-name small{font-size:9px;color:#8e9aab;margin-top:3px}.exec-count{min-width:27px;height:27px;padding:0 8px;border-radius:14px;background:#eef2ff;color:var(--blue);display:grid;place-items:center;font-size:10px;font-weight:700}.exec-group-body{border-top:1px solid #edf0f4;padding:0 14px}.exec-group-body table{margin-bottom:2px}.priority-action{border:1px solid #e7c5c2;background:#fff7f6;color:#b64c45;border-radius:6px;padding:6px 9px;font-size:9px;font-weight:700;cursor:pointer}.priority-action:hover{background:#fff0ee}.priority-action.active{background:#fff0ee;border-color:#efc0bc}.priority-tag{display:inline-flex;align-items:center;border-radius:12px;background:#fff0ee;color:#b64c45;padding:5px 8px;font-size:9px;font-weight:700}.priority-alert-panel{background:#fff;border:1px solid #efc7c3;border-left:4px solid #d9534f;border-radius:9px;margin-bottom:15px;padding:14px 16px;box-shadow:var(--shadow)}.priority-alert-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:7px}.priority-alert-head h2{font-size:13px;margin:0 0 4px}.priority-alert-head p{font-size:10px;color:#8d98a8;margin:0}.priority-alert-head>span{font-size:9px;color:#b64c45;font-weight:700}.priority-alert-item{display:flex;align-items:center;gap:10px;border-top:1px solid #f0e3e2;padding:10px 0}.priority-alert-icon{width:25px;height:25px;border-radius:50%;background:#fff0ee;color:#c34f48;display:grid;place-items:center;font-weight:800;font-size:11px;flex:none}.priority-alert-copy{min-width:0;flex:1}.priority-alert-copy b,.priority-alert-copy small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.priority-alert-copy b{font-size:10px}.priority-alert-copy small{font-size:9px;color:#9a6e6b;margin-top:3px}.priority-modal-tender{background:#f7f9fc;border:1px solid #e8edf3;border-radius:7px;padding:10px 11px;margin:8px 0 14px}</style>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<style id="calendar-visual-polish">
+/* ===== Selector de fechas: acabado visual ===== */
+.modal input[type="date"]{
+  width:100%;
+  min-height:48px;
+  box-sizing:border-box;
+  border:1px solid #d9e2f0;
+  border-radius:12px;
+  background:#fff;
+  color:#17243a;
+  padding:0 14px;
+  font:inherit;
+  font-weight:500;
+  letter-spacing:.01em;
+  outline:none;
+  transition:border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+
+.modal input[type="date"]:hover{
+  border-color:#b8c9e2;
+  background:#fbfdff;
+}
+
+.modal input[type="date"]:focus{
+  border-color:#4b73e8;
+  box-shadow:0 0 0 4px rgba(75,115,232,.12);
+  background:#fff;
+}
+
+.modal input[type="date"]::-webkit-calendar-picker-indicator{
+  width:20px;
+  height:20px;
+  padding:4px;
+  cursor:pointer;
+  opacity:.72;
+  border-radius:7px;
+  transition:opacity .15s ease, background .15s ease;
+}
+
+.modal input[type="date"]::-webkit-calendar-picker-indicator:hover{
+  opacity:1;
+  background:#eef3ff;
+}
+
+/* El calendario nativo no permite un rediseño completo desde HTML/CSS.
+   Estas reglas mejoran el campo y su integración visual con el modal. */
+#dates-modal .modal,
+#dates-modal .modal-content,
+.dates-modal .modal,
+.dates-modal .modal-content{
+  overflow:visible !important;
+}
+
+/* Campos de fecha dentro del formulario */
+.date-field,
+.form-field-date{
+  position:relative;
+}
+
+.date-field label,
+.form-field-date label{
+  display:block;
+  margin-bottom:8px;
+  color:#52627a;
+  font-size:12px;
+  font-weight:700;
+}
+
+@media (max-width:720px){
+  .modal input[type="date"]{
+    min-height:46px;
+  }
+}
+</style>
+
+<style id="calendar-component-polish">
+/* Calendario custom, si está presente */
+.calendar, .datepicker, .date-picker, .calendar-popup, .datepicker-popup{
+  border:1px solid #e1e8f2 !important;
+  border-radius:16px !important;
+  box-shadow:0 18px 45px rgba(29,49,83,.16) !important;
+  background:#fff !important;
+  overflow:hidden !important;
+}
+
+.calendar-header, .datepicker-header, .date-picker-header{
+  padding:14px 16px !important;
+  background:#f7f9fd !important;
+  border-bottom:1px solid #e9eef6 !important;
+}
+
+.calendar-grid, .datepicker-grid, .date-picker-grid{
+  gap:4px !important;
+  padding:10px !important;
+}
+
+.calendar-day, .datepicker-day, .date-picker-day{
+  min-width:34px !important;
+  min-height:34px !important;
+  border-radius:9px !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  transition:background .15s ease, color .15s ease, transform .15s ease !important;
+}
+
+.calendar-day:hover, .datepicker-day:hover, .date-picker-day:hover{
+  background:#eef3ff !important;
+  color:#2857c7 !important;
+}
+
+.calendar-day.selected, .datepicker-day.selected, .date-picker-day.selected,
+.calendar-day.active, .datepicker-day.active, .date-picker-day.active{
+  background:#315fe8 !important;
+  color:#fff !important;
+  font-weight:700 !important;
+}
+
+.calendar-nav button, .datepicker-nav button, .date-picker-nav button{
+  border-radius:8px !important;
+}
+
+.calendar-nav button:hover, .datepicker-nav button:hover, .date-picker-nav button:hover{
+  background:#eef3ff !important;
+}
+</style>
 </head>
 <body>
 <div id="root"><main class="gate"><section class="gatecard"><div class="logo">L</div><h1>Conectando…</h1><p>Preparando el espacio de licitaciones.</p></section></main></div>
@@ -376,7 +503,12 @@ function managerGroupedHtml(list){
   }).join('')+'</div>';
 }
 function managerPriorityOrDates(t){
-  return manager()?priorityButton(t):((canEditTenderDates(t.id)?'<button class="link edit-dates" data-tender="'+esc(t.id)+'">Fechas</button>':'<span class="muted">—</span>')+(t.is_priority?' <span class="priority-tag">🔴 Prioritaria</span>':''));
+  if(manager()) return priorityButton(t);
+  const actions=[];
+  if(canEditTenderBasic(t.id)) actions.push('<button class="link edit-basic" data-tender="'+esc(t.id)+'">Editar</button>');
+  if(canEditTenderDates(t.id)) actions.push('<button class="link edit-dates" data-tender="'+esc(t.id)+'">Fechas</button>');
+  if(t.is_priority) actions.push('<span class="priority-tag">🔴 Prioritaria</span>');
+  return actions.length?actions.join(' '):'<span class="muted">—</span>';
 }
 function tableHtml(list){
   if(manager()&&activeTab==="Mis licitaciones")return managerGroupedHtml(list);
@@ -629,6 +761,7 @@ document.querySelectorAll("[data-priority-clear]").forEach(b=>b.onclick=()=>show
 document.querySelectorAll("[data-priority-view]").forEach(b=>b.onclick=()=>showTenderDetail(b.dataset.priorityView));
 
 document.querySelectorAll(".edit-dates").forEach(b=>b.onclick=()=>showTenderDates(b.dataset.tender));
+document.querySelectorAll(".edit-basic").forEach(b=>b.onclick=()=>showTenderBasicEdit(b.dataset.tender));
 document.querySelectorAll(".tender-id").forEach(b=>b.onclick=()=>showTenderDetail(b.dataset.tender));
 document.querySelectorAll(".team-action").forEach(b=>b.onclick=()=>manageTeamUser(b.dataset.action,b.dataset.user,b.dataset.name));
 }
@@ -665,6 +798,78 @@ function showPasswordForm(){
     close();message("Tu contraseña se actualizó correctamente.");
   };
 }
+const canEditTenderBasic=(tid)=>{
+  if(manager()) return false;
+  const t=tenders.find(x=>x.id===tid);
+  return !!t && (
+    t.created_by===user.id ||
+    assignments.some(a=>a.tender_id===tid&&a.executive_id===user.id)
+  );
+};
+
+function showTenderBasicEdit(tenderId){
+  const tender=tenders.find(t=>t.id===tenderId);
+  if(!tender||!canEditTenderBasic(tenderId))return;
+
+  const areas=["General","Asistencia","Otras Asistenciales","CRASI","Base","Traumatología","Laboratorio","Dialisis","Equipos Médicos","Indefinido"];
+  const areaOptions=areas.map(a=>'<option value="'+esc(a)+'" '+(String(tender.area||"")===a?'selected':'')+'>'+esc(a)+'</option>').join("");
+
+  $("#root").insertAdjacentHTML("beforeend",
+    '<div class="overlay" id="basic-edit-overlay">'+
+      '<form class="modal" id="basic-edit-form">'+
+        '<div class="modal-head">'+
+          '<div><h2>Editar licitación</h2><p>'+esc(tender.external_id||"Sin ID anterior")+' · '+esc(tender.title||"")+'</p></div>'+
+          '<button type="button" class="quiet" id="basic-edit-close">✕</button>'+
+        '</div>'+
+        '<div class="formgrid">'+
+          '<label>ID licitación <span class="muted">(opcional)</span><input name="external_id" maxlength="80" value="'+esc(tender.external_id||"")+'" placeholder="Ej.: 1057509-xx-xxxx"></label>'+
+          '<label>Área<select name="area" required><option value="">Selecciona un área</option>'+areaOptions+'</select></label>'+
+        '</div>'+
+        '<div class="actions">'+
+          '<button type="button" class="btn" id="basic-edit-cancel">Cancelar</button>'+
+          '<button type="submit" class="btn primary" id="basic-edit-save">Guardar cambios</button>'+
+        '</div>'+
+      '</form>'+
+    '</div>'
+  );
+
+  const close=()=>$("#basic-edit-overlay")?.remove();
+  $("#basic-edit-close").onclick=$("#basic-edit-cancel").onclick=close;
+
+  $("#basic-edit-form").onsubmit=async(e)=>{
+    e.preventDefault();
+    const form=new FormData(e.target);
+    const button=$("#basic-edit-save");
+    const externalId=String(form.get("external_id")||"").trim()||null;
+    const area=String(form.get("area")||"").trim();
+
+    if(!area){
+      message("Debes seleccionar un área.",true);
+      return;
+    }
+
+    button.disabled=true;
+    button.textContent="Guardando…";
+
+    const {error}=await db.from("tenders").update({
+      external_id:externalId,
+      area,
+      updated_at:new Date().toISOString()
+    }).eq("id",tenderId);
+
+    if(error){
+      button.disabled=false;
+      button.textContent="Guardar cambios";
+      message(error.message,true);
+      return;
+    }
+
+    close();
+    await load();
+    message("ID y área actualizados correctamente.");
+  };
+}
+
 function showTenderDetail(tenderId){
   const tender=tenders.find(t=>t.id===tenderId); if(!tender)return;
   const owner=ownerName(tenderId);
@@ -685,10 +890,14 @@ function showTenderDetail(tenderId){
     +'<div class="detail-field full"><label>Asunto de correo</label><div class="detail-value">'+esc(tender.email_subject||'Sin asunto registrado')+'</div></div>'
     +'<div class="detail-field full"><label>Observaciones</label>'+(canEditObservation?'<textarea id="detail-observations" class="detail-observations" maxlength="3000" placeholder="Escribe observaciones, antecedentes o información relevante de la licitación…">'+esc(obs)+'</textarea>':'<div class="detail-value">'+esc(obs||'Sin observaciones registradas.')+'</div>')+'</div>'
     +'</div>';
-  const actions=canEditObservation?'<button type="button" class="btn" id="detail-close">Cerrar</button><button type="button" class="btn primary" id="detail-save">Guardar observaciones</button>':'<button type="button" class="btn primary" id="detail-close">Cerrar</button>';
+  const basicEditAction=canEditTenderBasic(tenderId)?'<button type="button" class="btn" id="detail-edit-basic">Editar ID y área</button>':'';
+  const actions=canEditObservation
+    ?basicEditAction+'<button type="button" class="btn" id="detail-close">Cerrar</button><button type="button" class="btn primary" id="detail-save">Guardar observaciones</button>'
+    :basicEditAction+'<button type="button" class="btn primary" id="detail-close">Cerrar</button>';
   $("#root").insertAdjacentHTML("beforeend",'<div class="overlay" id="detail-overlay"><section class="modal detail-modal"><div class="modal-head"><div><h2>Detalle de licitación</h2><p>'+esc(tender.external_id||'Sin ID anterior')+' · '+esc(tender.title||'')+'</p></div><button type="button" class="quiet" id="detail-x">✕</button></div>'+body+'<div class="actions">'+actions+'</div></section></div>');
   const close=()=>$("#detail-overlay")?.remove();
   $("#detail-x").onclick=close; $("#detail-close").onclick=close;
+  $("#detail-edit-basic")?.addEventListener("click",()=>{close();showTenderBasicEdit(tenderId);});
   $("#detail-save")?.addEventListener("click",async()=>{
     const button=$("#detail-save"); button.disabled=true; button.textContent="Guardando…";
     const observations=String($("#detail-observations")?.value||"").trim()||null;
