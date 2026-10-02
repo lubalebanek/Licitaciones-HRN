@@ -469,13 +469,14 @@ function executiveSummaryHtml(active,dates,closed){
 
 function exportCurrentDetailsExcel(){
   try{
-    const rows = Array.isArray(detailRows) ? detailRows : [];
-    const filtered = typeof getFilteredDetailRows === "function"
-      ? getFilteredDetailRows()
-      : rows;
+    const filtered = typeof detailVisibleRows === "function"
+      ? detailVisibleRows()
+      : [];
 
     if(!filtered.length){
-      message("No hay registros para exportar con los filtros actuales.", true);
+      notice = "No hay registros para exportar con los filtros actuales.";
+      noticeError = true;
+      render();
       return;
     }
 
@@ -508,36 +509,60 @@ function exportCurrentDetailsExcel(){
       "Ejecutivo Actual": r.ejecutivo_actual || ""
     }));
 
-    if(window.XLSX){
-      const ws = XLSX.utils.json_to_sheet(data);
-      ws["!cols"] = Object.keys(data[0]).map(k => ({
-        wch: Math.min(45, Math.max(12, k.length + 2))
-      }));
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Detalles");
-      const stamp = new Date().toISOString().slice(0,10);
-      XLSX.writeFile(wb, `Detalles_Licitaciones_${stamp}.xlsx`);
-    }else{
-      const headers = Object.keys(data[0]);
-      const csv = [
-        headers.join(";"),
-        ...data.map(row => headers.map(h =>
-          `"${String(row[h] ?? "").replaceAll('"','""')}"`
-        ).join(";"))
-      ].join("\n");
-      const blob = new Blob(["\ufeff"+csv], {type:"text/csv;charset=utf-8;"});
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = `Detalles_Licitaciones_${new Date().toISOString().slice(0,10)}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+    if(typeof XLSX === "undefined"){
+      throw new Error("No se pudo cargar el módulo de Excel.");
     }
-    message(`${filtered.length} registro(s) exportado(s) correctamente.`);
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    ws["!cols"] = Object.keys(data[0]).map(k => ({
+      wch: Math.min(45, Math.max(12, k.length + 2))
+    }));
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Detalles");
+
+    const arrayBuffer = XLSX.write(wb, {
+      bookType: "xlsx",
+      type: "array",
+      compression: true
+    });
+
+    const blob = new Blob([arrayBuffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    });
+
+    const now = new Date();
+    const pad = n => String(n).padStart(2,"0");
+    const stamp =
+      now.getFullYear() +
+      pad(now.getMonth()+1) +
+      pad(now.getDate()) + "_" +
+      pad(now.getHours()) +
+      pad(now.getMinutes()) +
+      pad(now.getSeconds()) + "_" +
+      String(now.getMilliseconds()).padStart(3,"0");
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Detalles_Licitaciones_${stamp}.xlsx`;
+    link.style.display = "none";
+    document.body.appendChild(link);
+    link.click();
+
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+      link.remove();
+    }, 1500);
+
+    notice = `${filtered.length} registro(s) exportado(s) correctamente.`;
+    noticeError = false;
+
   }catch(err){
-    console.error(err);
-    message("No se pudo exportar el detalle: "+(err?.message||err), true);
+    console.error("Error al exportar detalles:", err);
+    notice = "No se pudo exportar el detalle: " + (err?.message || err);
+    noticeError = true;
+    render();
   }
 }
 
@@ -582,17 +607,17 @@ document.querySelectorAll("[data-detail-single]").forEach(btn=>btn.addEventListe
 $("#upload-detail")?.addEventListener("click",showDetailUpload);
 $("#upload-detail-bulk")?.addEventListener("click",showBulkDetailUpload);
 $("#download-detail-template")?.addEventListener("click",downloadDetailTemplate);
-$("#export-detail")?.addEventListener("click",exportDetailsExcel);
 document.querySelectorAll("[data-status-trigger]").forEach(b=>b.addEventListener("click",()=>showStatusMenu(b,b.dataset.statusTrigger)));
-const exportDetailBtn=document.getElementById("export-detail");
-if(exportDetailBtn)exportDetailBtn.addEventListener("click",e=>{
-  e.preventDefault();
-  exportCurrentDetailsExcel();
-});
-document.querySelectorAll("[data-export-current-details]").forEach(b=>b.addEventListener("click",e=>{
-  e.preventDefault();
-  exportCurrentDetailsExcel();
-}));
+if(!window.__detailExportListenerBound){
+  window.__detailExportListenerBound = true;
+  document.addEventListener("click", function(e){
+    const button = e.target.closest("#export-detail,[data-export-current-details]");
+    if(!button) return;
+    e.preventDefault();
+    e.stopPropagation();
+    exportCurrentDetailsExcel();
+  });
+}
 document.querySelectorAll("[data-exec-toggle]").forEach(b=>b.addEventListener("click",e=>{
   e.stopPropagation();
   const id=b.dataset.execToggle;
