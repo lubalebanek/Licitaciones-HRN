@@ -319,6 +319,12 @@ function detailValue(row,key){
   const v=row[key];
   if(v===null||v===undefined||v==="")return "";
   if(["fecha_resolucion_adjudicacion","fecha_adjudicacion_portal","fecha_resolucion_convenio","termino","fecha_termino_maxima","prorrogada_renovada_hasta"].includes(key))return fmtDate(String(v).slice(0,10));
+  if(["valor_prestacion","total_convenio"].includes(key)){
+    const n=Number(v);
+    if(Number.isFinite(n)){
+      return new Intl.NumberFormat("es-CL",{style:"currency",currency:"CLP",minimumFractionDigits:0,maximumFractionDigits:0}).format(Math.round(n));
+    }
+  }
   return String(v);
 }
 function detailTableHtml(){
