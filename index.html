@@ -212,6 +212,21 @@
   color:#315fe8;
 }
 </style>
+
+<style id="v32-transitions">
+:root{--ui-ease:cubic-bezier(.22,.61,.36,1)}
+.btn,.iconbtn,.link,.account-action,.filter,.search,input,select,textarea,.panel,.card,.kpi,.deadline,.state-line,.modal-card,.gatecard,.dropdown,.menu{transition:opacity .18s var(--ui-ease),transform .18s var(--ui-ease),background-color .18s var(--ui-ease),border-color .18s var(--ui-ease),box-shadow .18s var(--ui-ease),color .18s var(--ui-ease)}
+.btn:hover,.iconbtn:hover,.account-action:hover{transform:translateY(-1px)}
+.btn:active,.iconbtn:active,.account-action:active{transform:translateY(0) scale(.98)}
+.panel,.kpi,.card,.deadline,.state-line{animation:v32-fade-up .24s var(--ui-ease) both}
+@keyframes v32-fade-up{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+@keyframes v32-fade-in{from{opacity:0}to{opacity:1}}
+@keyframes v32-scale-in{from{opacity:0;transform:translateY(6px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+#user-overlay,.overlay,.modal-overlay{animation:v32-fade-in .16s var(--ui-ease) both}
+#user-overlay>*,.overlay>*,.modal-overlay>*{animation:v32-scale-in .2s var(--ui-ease) both}
+.edit-area-single.open .edit-area-menu{animation:v32-scale-in .16s var(--ui-ease) both}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+</style>
 </head>
 <body>
 <div id="root"><main class="gate"><section class="gatecard"><div class="logo">L</div><h1>Conectando…</h1><p>Preparando el espacio de licitaciones.</p></section></main></div>
